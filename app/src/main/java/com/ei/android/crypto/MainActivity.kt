@@ -1,30 +1,35 @@
 package com.ei.android.crypto
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
-import com.ei.android.crypto.data.api.ApiFactory
-import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.schedulers.Schedulers
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
+import com.ei.android.crypto.adapters.CoinInfoAdapter
+import com.ei.android.crypto.data.pojo.CoinPriceInfo
 
 class MainActivity : AppCompatActivity() {
-    private val compositeDisposable = CompositeDisposable()
+
+    private lateinit var viewModel: CoinViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val disposable = ApiFactory.apiService.getFullPriceList(fSyms = "BTS")
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                Log.d("TEST_LOADING",it.toString())
-            },{
-                Log.d("TEST_LOADING",it.message!!)
-            })
-    }
+        val adapter = CoinInfoAdapter(this)
+        val rvCoinPriceList = findViewById<RecyclerView>(R.id.coinListRecyclerView)
+        adapter.onCoinClickListener = object :CoinInfoAdapter.OnCoinClickListener{
+            override fun onCoinCLick(coinPriceInfo: CoinPriceInfo) {
+                val intent = CoinDetailActivity.newIntent(this@MainActivity,coinPriceInfo.fromSymbol)
+                startActivity(intent)
+            }
+        }
+        rvCoinPriceList.adapter = adapter
+        viewModel = ViewModelProvider(this)[CoinViewModel::class.java]
+        viewModel.priceList.observe(this, Observer {
+            adapter.coinInfoList = it
+        })
 
-    override fun onDestroy() {
-        super.onDestroy()
-        compositeDisposable.dispose()
+
+
     }
 }
